@@ -1,1 +1,318 @@
+#include <iostream>
+#include <string>
+#include <memory>
+using namespace std;
 
+// Score Management Class
+class Score {
+private:
+    int points;
+
+public:
+    Score() {
+        points = 0;
+    }
+
+    void addPoints(int value) {
+        points += value;
+    }
+
+    int getScore() const {
+        return points;
+    }
+};
+
+// Base Class
+class Player {
+private:
+    string name;
+    int health;
+    Score playerScore;
+
+public:
+    Player(string n) {
+        name = n;
+        health = 100;
+    }
+
+    virtual ~Player() = default;
+
+    string getName() const {
+        return name;
+    }
+
+    int getHealth() const {
+        return health;
+    }
+
+    int getScore() const {
+        return playerScore.getScore();
+    }
+
+    void takeDamage(int damage) {
+        health -= damage;
+
+        if (health < 0) {
+            health = 0;
+        }
+    }
+
+    void heal(int amount) {
+        health += amount;
+
+        if (health > 100) {
+            health = 100;
+        }
+
+        cout << "\nHealth restored successfully!\n";
+    }
+
+    void increaseScore(int points) {
+        playerScore.addPoints(points);
+    }
+
+    virtual int attack() = 0;
+
+    virtual string getCharacterType() const = 0;
+
+    void displayDetails() const {
+        cout << "\n------ PLAYER DETAILS ------\n";
+        cout << "Name: " << name << endl;
+        cout << "Character: " << getCharacterType() << endl;
+        cout << "Health: " << health << endl;
+        cout << "Score: " << getScore() << endl;
+    }
+};
+
+// Derived Class 1
+class Warrior : public Player {
+public:
+    Warrior(string name) : Player(name) {}
+
+    int attack() override {
+        cout << "\nWarrior performs a powerful sword attack!\n";
+        return 25;
+    }
+
+    string getCharacterType() const override {
+        return "Warrior";
+    }
+};
+
+// Derived Class 2
+class Mage : public Player {
+public:
+    Mage(string name) : Player(name) {}
+
+    int attack() override {
+        cout << "\nMage performs a magical attack!\n";
+        return 35;
+    }
+
+    string getCharacterType() const override {
+        return "Mage";
+    }
+};
+
+// Game Management Class
+class Game {
+private:
+    unique_ptr<Player> player;
+    int enemyHealth;
+    bool gameRunning;
+    bool healingUsed;
+
+public:
+    Game() {
+        enemyHealth = 100;
+        gameRunning = false;
+        healingUsed = false;
+    }
+
+    void createPlayer() {
+        string name;
+        int choice;
+
+        cout << "\nEnter Player Name: ";
+        getline(cin >> ws, name);
+
+        cout << "\nSelect Character:\n";
+        cout << "1. Warrior\n";
+        cout << "2. Mage\n";
+
+        cout << "Enter Choice: ";
+        cin >> choice;
+
+        if (choice == 1) {
+            player = make_unique<Warrior>(name);
+        }
+        else if (choice == 2) {
+            player = make_unique<Mage>(name);
+        }
+        else {
+            cout << "\nInvalid Choice! Warrior selected by default.\n";
+            player = make_unique<Warrior>(name);
+        }
+
+        enemyHealth = 100;
+        gameRunning = true;
+        healingUsed = false;
+
+        cout << "\nPlayer Created Successfully!\n";
+    }
+
+    void showStatus() const {
+        if (!player) {
+            cout << "\nPlease create a player first!\n";
+            return;
+        }
+
+        player->displayDetails();
+
+        cout << "Enemy Health: " << enemyHealth << endl;
+
+        cout << "Game Status: ";
+
+        if (!gameRunning) {
+            if (player->getHealth() == 0) {
+                cout << "LOST";
+            }
+            else if (enemyHealth == 0) {
+                cout << "WON";
+            }
+            else {
+                cout << "NOT STARTED";
+            }
+        }
+        else {
+            cout << "RUNNING";
+        }
+
+        cout << endl;
+    }
+
+    void attackEnemy() {
+        if (!player || !gameRunning) {
+            cout << "\nNo active game! Create a player first.\n";
+            return;
+        }
+
+        int damage = player->attack();
+
+        enemyHealth -= damage;
+
+        if (enemyHealth < 0) {
+            enemyHealth = 0;
+        }
+
+        cout << "Enemy received " << damage << " damage.\n";
+        cout << "Remaining Enemy Health: " << enemyHealth << endl;
+
+        if (enemyHealth == 0) {
+            cout << "\nCongratulations! You defeated the enemy!\n";
+
+            player->increaseScore(100);
+
+            gameRunning = false;
+
+            cout << "You earned 100 points!\n";
+            cout << "GAME WON!\n";
+
+            return;
+        }
+
+        // Enemy attacks the player
+        int enemyDamage = 15;
+
+        cout << "\nEnemy attacks you!\n";
+
+        player->takeDamage(enemyDamage);
+
+        cout << "You received " << enemyDamage << " damage.\n";
+
+        if (player->getHealth() == 0) {
+            gameRunning = false;
+
+            cout << "\nYour health reached zero!\n";
+            cout << "GAME OVER!\n";
+        }
+    }
+
+    void healPlayer() {
+        if (!player || !gameRunning) {
+            cout << "\nNo active game!\n";
+            return;
+        }
+
+        if (healingUsed) {
+            cout << "\nHealing potion already used!\n";
+            return;
+        }
+
+        player->heal(30);
+
+        healingUsed = true;
+    }
+
+    void start() {
+        int choice;
+
+        do {
+            cout << "\n========== GAME DEVELOPMENT SYSTEM ==========\n";
+            cout << "1. Create Player\n";
+            cout << "2. Attack Enemy\n";
+            cout << "3. Heal Player\n";
+            cout << "4. Display Player Details\n";
+            cout << "5. Display Game Status\n";
+            cout << "6. Exit\n";
+
+            cout << "\nEnter Your Choice: ";
+            cin >> choice;
+
+            switch (choice) {
+                case 1:
+                    createPlayer();
+                    break;
+
+                case 2:
+                    attackEnemy();
+                    break;
+
+                case 3:
+                    healPlayer();
+                    break;
+
+                case 4:
+                    if (player) {
+                        player->displayDetails();
+                    }
+                    else {
+                        cout << "\nCreate a player first!\n";
+                    }
+                    break;
+
+                case 5:
+                    showStatus();
+                    break;
+
+                case 6:
+                    cout << "\nThank You For Playing!\n";
+                    break;
+
+                default:
+                    cout << "\nInvalid Choice! Try Again.\n";
+            }
+
+        } while (choice != 6);
+    }
+};
+
+// Main Function
+int main() {
+
+    Game game;
+
+    game.start();
+
+    return 0;
+}
